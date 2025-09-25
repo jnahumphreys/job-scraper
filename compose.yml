@@ -1,0 +1,13 @@
+services:
+  job-scraper:
+    build: .
+    image: job-scraper:latest
+    container_name: job-scraper
+    ports:
+      - "8000:8000"
+    networks:
+      - apps
+
+networks:
+  apps:
+    external: true
