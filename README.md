@@ -1,6 +1,6 @@
 # Job Scraper API
 
-A FastAPI application for scraping job listings from various job boards.
+A FastAPI application for scraping job listings from LinkedIn.
 
 ## Features
 
