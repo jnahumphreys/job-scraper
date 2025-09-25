@@ -11,6 +11,12 @@ A FastAPI application for scraping job listings from LinkedIn.
 - **Pydantic Models**: Strong data validation and serialization
 - **Comprehensive Testing**: Full test suite with mocking for external dependencies
 
+## Suporting the project
+
+If this project has been helpful in your workflow and you’d like to support my open-source work, please consider making a small donation. Thank you! 🙏
+
+[![Buy me a coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=jnahumphreys&button_colour=FFDD00&font_colour=000000&font_family=Lato&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/jnahumphreys)
+
 ## API Endpoints
 
 ### GET /jobs
