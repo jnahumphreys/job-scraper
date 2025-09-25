@@ -31,6 +31,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: |
+            --allow-insecure-entitlement=network.host
+            --allow-insecure-entitlement=security.insecure
 
       - name: Extract metadata
         id: meta
@@ -51,5 +55,17 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=gha,mode=max
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Clean up old cache (optional)
+        if: github.event_name == 'release'
+        run: |
+          # Clean up old build cache entries when releasing to save space
+          docker buildx prune --filter 'until=168h' --force || true
