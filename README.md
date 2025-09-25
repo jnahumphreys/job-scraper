@@ -114,9 +114,33 @@ job-scraper/
 └── README.md           # This file
 ```
 
-## Development
+## Docker Deployment
 
-The application is containerized with Docker. See `Dockerfile` and `compose.yml` for container setup.
+### Using Pre-built Image
+
+Pull and run the latest image from GitHub Container Registry:
+
+```bash
+docker run -p 8000:8000 ghcr.io/jnahumphreys/job-scraper:latest
+```
+
+### Using Docker Compose
+
+Requires pulling the repository:
+
+```bash
+git clone https://github.com/jnahumphreys/job-scraper.git
+cd job-scraper
+docker compose up -d
+```
+
+### Available Image Tags
+
+- `latest`: Latest released version
+- `v*`: Specific version releases (e.g., `v1.0.0`, `v1.2.3`)
+- Version variations: `v1.2.3`, `v1.2`, `v1` (created automatically from releases)
+
+## Development
 
 ### API Documentation
 

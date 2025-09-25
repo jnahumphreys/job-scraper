@@ -1,13 +1,11 @@
 services:
   job-scraper:
-    build: .
-    image: job-scraper:latest
+    image: ghcr.io/jnahumphreys/job-scraper:latest
     container_name: job-scraper
     ports:
       - "8000:8000"
-    networks:
-      - apps
+    restart: unless-stopped
 
 networks:
-  apps:
-    external: true
+  default:
+    driver: bridge
