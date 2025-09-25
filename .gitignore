@@ -1,6 +1,15 @@
 # Test related
-.pytest_cache/
+htmlcov/
 .coverage
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Local test artifacts
+coverage_report.html
+test-results/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

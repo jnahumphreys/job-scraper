@@ -99,6 +99,24 @@ The test suite achieves 100% code coverage, testing:
 - External service failure scenarios
 - Different parameter combinations
 
+### Continuous Integration
+
+The project uses GitHub Actions for continuous integration:
+
+- **Automated Testing**: Tests run on every pull request to main branch
+- **Multi-Python Support**: Tests against Python 3.10, 3.11, and 3.12
+- **Coverage Reporting**: Coverage reports are uploaded to Codecov
+- **PR Comments**: Coverage reports are automatically commented on pull requests
+- **Artifacts**: HTML coverage reports are saved as downloadable artifacts
+
+#### Setting up Codecov (Optional)
+
+To enable coverage reporting to Codecov:
+
+1. Sign up at [codecov.io](https://codecov.io) and connect your repository
+2. Add your Codecov token as a GitHub secret named `CODECOV_TOKEN`
+3. Coverage reports will be automatically uploaded on every test run
+
 ## Project Structure
 
 ```
