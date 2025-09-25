@@ -1,6 +1,6 @@
-# Job Scraper API
+# JobSpy API
 
-A FastAPI application for scraping job listings from LinkedIn.
+A FastAPI application for scraping job listings from LinkedIn using the JobSpy package.
 
 ![Tests](https://github.com/jnahumphreys/job-scraper/actions/workflows/test.yml/badge.svg)
 [![codecov](https://codecov.io/github/jnahumphreys/job-scraper/graph/badge.svg?token=LCI4JMRK6O)](https://codecov.io/github/jnahumphreys/job-scraper)
@@ -11,6 +11,11 @@ A FastAPI application for scraping job listings from LinkedIn.
 - **Job Scraping**: Scrapes job listings from LinkedIn using JobSpy
 - **Pydantic Models**: Strong data validation and serialization
 - **Comprehensive Testing**: Full test suite with mocking for external dependencies
+
+## To do
+
+- [] Add support for scraping from Indeed and Google
+- [] Add proxy support
 
 ## Suporting the project
 
@@ -118,14 +123,6 @@ The project uses GitHub Actions for continuous integration:
 - **PR Comments**: Coverage reports are automatically commented on pull requests
 - **Artifacts**: HTML coverage reports are saved as downloadable artifacts
 
-#### Setting up Codecov (Optional)
-
-To enable coverage reporting to Codecov:
-
-1. Sign up at [codecov.io](https://codecov.io) and connect your repository
-2. Add your Codecov token as a GitHub secret named `CODECOV_TOKEN`
-3. Coverage reports will be automatically uploaded on every test run
-
 ## Project Structure
 
 ```
@@ -177,7 +174,7 @@ Interactive API documentation is available at:
 
 ## Acknowledgments
 
-We would like to express our gratitude to the maintainers and contributors of [JobSpy](https://github.com/cullenwatson/JobSpy), the powerful job scraping library that makes this project possible. JobSpy provides robust scraping capabilities for major job platforms including Indeed, LinkedIn, ZipRecruiter, Glassdoor, and Google Jobs.
+I would like to express my gratitude to the maintainers and contributors of [JobSpy](https://github.com/cullenwatson/JobSpy), the powerful job scraping library that makes this project possible. JobSpy provides robust scraping capabilities for major job platforms including Indeed, LinkedIn, ZipRecruiter, Glassdoor, and Google Jobs.
 
 Special thanks to:
 - The JobSpy development team for creating and maintaining this excellent tool
