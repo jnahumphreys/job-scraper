@@ -165,3 +165,14 @@ docker compose up -d
 Interactive API documentation is available at:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+## Acknowledgments
+
+We would like to express our gratitude to the maintainers and contributors of [JobSpy](https://github.com/cullenwatson/JobSpy), the powerful job scraping library that makes this project possible. JobSpy provides robust scraping capabilities for major job platforms including Indeed, LinkedIn, ZipRecruiter, Glassdoor, and Google Jobs.
+
+Special thanks to:
+- The JobSpy development team for creating and maintaining this excellent tool
+- All contributors who help improve the library
+- The open-source community that supports job search automation
+
+Their work enables developers to build job search and analysis tools more efficiently.
