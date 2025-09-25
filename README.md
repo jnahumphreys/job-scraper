@@ -2,10 +2,12 @@
 
 A FastAPI application for scraping job listings from LinkedIn.
 
+![Tests](https://github.com/jnahumphreys/job-scraper/actions/workflows/test.yml/badge.svg)
+
 ## Features
 
 - **FastAPI Framework**: High-performance, modern web framework
-- **Job Scraping**: Scrapes job listings from LinkedIn using jobspy
+- **Job Scraping**: Scrapes job listings from LinkedIn using JobSpy
 - **Pydantic Models**: Strong data validation and serialization
 - **Comprehensive Testing**: Full test suite with mocking for external dependencies
 
