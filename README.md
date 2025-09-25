@@ -3,6 +3,7 @@
 A FastAPI application for scraping job listings from LinkedIn.
 
 ![Tests](https://github.com/jnahumphreys/job-scraper/actions/workflows/test.yml/badge.svg)
+[![codecov](https://codecov.io/github/jnahumphreys/job-scraper/graph/badge.svg?token=LCI4JMRK6O)](https://codecov.io/github/jnahumphreys/job-scraper)
 
 ## Features
 
