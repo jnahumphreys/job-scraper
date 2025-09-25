@@ -1,2 +1,6 @@
 python-jobspy
 fastapi[standard]
+pytest
+httpx
+pytest-mock
+pytest-cov
