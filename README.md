@@ -26,10 +26,24 @@ Search for job listings with the following parameters:
 
 ## Installation
 
+### Using VS Code Dev Container (Recommended)
+
+If you're using VS Code with the dev container setup, all dependencies are automatically installed and configured for you. Simply:
+
+1. Open the project in VS Code
+2. When prompted, click "Reopen in Container" or use the Command Palette (`Ctrl+Shift+P`) and select "Dev Containers: Reopen in Container"
+3. The container will build and install all dependencies automatically
+
+### Manual Installation
+
+If you're not using the dev container:
+
 1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+### Running the Application
 
 2. Run the development server:
 ```bash
