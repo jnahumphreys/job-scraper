@@ -1,22 +1,22 @@
-from fastapi import FastAPI
-from typing import Literal
+from fastapi import FastAPI, Depends, Query
+from typing import Annotated
 from app.scrape_jobs import get_jobs
-from pydantic import BaseModel
+from app.models import Job, JobSearchParams
 
-app = FastAPI()
-
-
-class Job(BaseModel):
-    id: str | None
-    job_url: str | None
-    job_url_direct: str | None
-    location: str | None
-    title: str | None
-    company: str | None
-    job_type: str | None
-    description: str | None
+app = FastAPI(
+    title="Job Scraper API",
+    description="A FastAPI application for scraping job listings from various job boards",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 
-@app.get("/jobs")
-async def jobs(search_term: str, location: str = "london", distance: int = 5, job_type: Literal["fulltime", "parttime", "internship", "contract"] = None, results_wanted: int = 10, hours_old: int = 24) -> list[Job]:
-    return get_jobs(search_term, location, distance, job_type, results_wanted, hours_old)
+@app.get(
+    "/jobs",
+    response_model=list[Job],
+)
+async def search_jobs(
+    params: Annotated[JobSearchParams, Query()]
+) -> list[Job]:
+    return get_jobs(params)
