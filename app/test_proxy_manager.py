@@ -107,3 +107,55 @@ class TestProxyManager:
                 proxies = proxy_manager.get_proxy_list(force_refresh=True)
 
         assert proxies is None
+
+    def test_fetch_free_proxies_with_different_protocols(self):
+        """Test proxy parsing with different protocols"""
+        proxy_manager = ProxyManager()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = """
+        http://1.2.3.4:8080
+        socks4://5.6.7.8:1080
+        socks5://9.10.11.12:1080  
+        https://13.14.15.16:443
+        17.18.19.20:3128
+        """
+
+        with patch('requests.get', return_value=mock_response):
+            proxies = proxy_manager._fetch_free_proxies()
+
+        # Should only include HTTP proxies and plain IP:port (converted to HTTP)
+        assert "http://1.2.3.4:8080" in proxies
+        assert "http://17.18.19.20:3128" in proxies
+        # Should exclude non-HTTP protocols
+        assert not any("socks4://" in proxy for proxy in proxies)
+        assert not any("socks5://" in proxy for proxy in proxies)
+        assert not any("https://" in proxy for proxy in proxies)
+
+    def test_get_proxy_list_logs_no_working_proxies_warning(self):
+        """Test that warning is logged when no working proxies found"""
+        proxy_manager = ProxyManager()
+
+        with patch.object(proxy_manager, '_fetch_free_proxies', return_value=["http://1.2.3.4:8080"]):
+            with patch.object(proxy_manager, '_validate_proxies', return_value=[]):
+                with patch('app.proxy_manager.logger') as mock_logger:
+                    proxies = proxy_manager.get_proxy_list(force_refresh=True)
+
+                    # Verify warning was logged (line 128)
+                    mock_logger.warning.assert_called_with(
+                        "No working proxies found")
+                    assert proxies is None
+
+    def test_get_proxy_list_no_proxy_fetch_failure(self):
+        """Test when proxy fetching fails completely"""
+        proxy_manager = ProxyManager()
+
+        with patch.object(proxy_manager, '_fetch_free_proxies', return_value=[]):
+            with patch('app.proxy_manager.logger') as mock_logger:
+                proxies = proxy_manager.get_proxy_list(force_refresh=True)
+
+                # Should warn about no proxies being fetched
+                mock_logger.warning.assert_called_with(
+                    "Failed to fetch any proxies")
+                assert proxies is None

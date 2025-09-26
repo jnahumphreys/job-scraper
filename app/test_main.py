@@ -538,3 +538,77 @@ def test_jobs_endpoint_proxy_fetch_fails_fallback_disabled(mock_settings, mock_p
     assert data["error"]["error_type"] == "proxy_fetch_failed"
     assert "Failed to fetch proxies" in data["error"]["message"]
     assert "Proxy service unavailable" in data["error"]["message"]
+
+
+@patch('app.main.proxy_manager')
+@patch('app.config.settings')
+def test_scraping_health_with_proxies_available(mock_settings, mock_proxy_manager):
+    """Test /health/scraping when proxies are available"""
+    mock_settings.USE_PROXIES = True
+    mock_settings.PROXY_FALLBACK_ENABLED = True
+    mock_proxy_manager.get_proxy_list.return_value = [
+        "http://proxy1:8080", "http://proxy2:8080"]
+
+    response = client.get("/health/scraping")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["scraping_available"] is True
+    assert data["use_proxies"] is True
+    assert data["fallback_enabled"] is True
+    assert data["working_proxies"] == 2
+    assert "available" in data["reason"]
+
+
+@patch('app.main.proxy_manager')
+@patch('app.config.settings')
+def test_scraping_health_no_proxies_fallback_disabled(mock_settings, mock_proxy_manager):
+    """Test /health/scraping when no proxies and fallback disabled"""
+    mock_settings.USE_PROXIES = True
+    mock_settings.PROXY_FALLBACK_ENABLED = False
+    mock_proxy_manager.get_proxy_list.return_value = []
+
+    response = client.get("/health/scraping")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["scraping_available"] is False
+    assert data["use_proxies"] is True
+    assert data["fallback_enabled"] is False
+    assert data["working_proxies"] == 0
+    assert "No working proxies and fallback disabled" in data["reason"]
+
+
+@patch('app.main.proxy_manager')
+@patch('app.config.settings')
+def test_scraping_health_without_proxies(mock_settings, mock_proxy_manager):
+    """Test /health/scraping when not using proxies"""
+    mock_settings.USE_PROXIES = False
+    mock_settings.PROXY_FALLBACK_ENABLED = False
+    mock_proxy_manager.get_proxy_list.return_value = []
+
+    response = client.get("/health/scraping")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["scraping_available"] is True
+    assert data["use_proxies"] is False
+    assert data["fallback_enabled"] is False
+    assert data["working_proxies"] == 0
+    assert "available" in data["reason"]
+
+
+@patch('app.main.proxy_manager')
+def test_scraping_health_exception_handling(mock_proxy_manager):
+    """Test /health/scraping exception handling"""
+    mock_proxy_manager.get_proxy_list.side_effect = Exception(
+        "Proxy manager error")
+
+    response = client.get("/health/scraping")
+    assert response.status_code == 500
+
+    data = response.json()
+    assert data["scraping_available"] is False
+    assert "error" in data
+    assert "Proxy manager error" in data["error"]
+    assert "Error checking scraping availability" in data["reason"]
