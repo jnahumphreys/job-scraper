@@ -23,7 +23,8 @@ class ProxyManager:
         """Fetch free proxies from Proxifly"""
         proxy_urls = [
             "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/http/data.txt",
-            "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/countries/US/data.txt",
+            # Only use HTTP proxies for now, skip SOCKS4 proxies from US list
+            # "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/countries/US/data.txt",
         ]
 
         all_proxies = []
@@ -33,12 +34,24 @@ class ProxyManager:
                 response = requests.get(url, timeout=10)
                 if response.status_code == 200:
                     proxies = response.text.strip().split('\n')
-                    # Format as http://ip:port
-                    formatted_proxies = [
-                        f"http://{proxy.strip()}" for proxy in proxies if proxy.strip()]
+                    # Filter and format proxies - only keep HTTP ones and avoid double prefixes
+                    formatted_proxies = []
+                    for proxy in proxies:
+                        proxy = proxy.strip()
+                        if proxy:
+                            # If proxy already has a protocol, use as-is (if it's http)
+                            if proxy.startswith('http://'):
+                                formatted_proxies.append(proxy)
+                            # If proxy starts with other protocols, skip for now
+                            elif proxy.startswith(('socks4://', 'socks5://', 'https://')):
+                                continue
+                            # If no protocol, assume HTTP
+                            elif ':' in proxy:
+                                formatted_proxies.append(f"http://{proxy}")
+
                     all_proxies.extend(formatted_proxies)
                     logger.info(
-                        f"Fetched {len(formatted_proxies)} proxies from {url}")
+                        f"Fetched {len(formatted_proxies)} HTTP proxies from {url}")
             except Exception as e:
                 logger.warning(f"Failed to fetch proxies from {url}: {e}")
 
