@@ -8,7 +8,7 @@ from app.proxy_manager import proxy_manager
 app = FastAPI(
     title="JobSpy API",
     description="A FastAPI application for scraping job listings from LinkedIn using JobSpy with automatic proxy support",
-    version="1.0.0",
+    version="0.2.0-beta.1",
     docs_url="/docs",
     redoc_url="/redoc"
 )
