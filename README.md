@@ -141,30 +141,99 @@ Search for job listings with the following parameters:
 curl "http://localhost:8000/jobs?search_term=python%20developer&location=New%20York&results_wanted=5"
 ```
 
-**Example Response:**
+**Example Successful Response:**
 ```json
-[
-  {
-    "id": "123456789",
-    "title": "Senior Python Developer",
-    "company": "Tech Corp",
-    "location": "New York, NY",
-    "job_url": "https://linkedin.com/jobs/view/123456789",
-    "job_url_direct": "https://tech-corp.com/jobs/123456789",
-    "job_type": "fulltime",
-    "description": "We are looking for a Senior Python Developer...",
-    "is_remote": false,
+{
+  "success": true,
+  "jobs": [
+    {
+      "id": "123456789",
+      "title": "Senior Python Developer",
+      "company": "Tech Corp",
+      "location": "New York, NY",
+      "job_url": "https://linkedin.com/jobs/view/123456789",
+      "job_url_direct": "https://tech-corp.com/jobs/123456789",
+      "job_type": "fulltime",
+      "description": "We are looking for a Senior Python Developer...",
+      "is_remote": false
+    }
+  ],
+  "metadata": {
+    "total_results": 1,
+    "used_proxies": 3,
+    "proxy_enabled": true,
+    "search_params": {
+      "search_term": "python developer",
+      "location": "New York",
+      "results_wanted": 5
+    }
   }
-]
+}
 ```
 
-Note: the `description` will be returned as Markdown
+**Example Error Response (No Proxies Available):**
+```json
+{
+  "success": false,
+  "jobs": [],
+  "error": {
+    "error_type": "proxy_unavailable",
+    "message": "No working proxies available and fallback is disabled",
+    "details": {
+      "proxy_system_enabled": true,
+      "fallback_enabled": false,
+      "working_proxies": 0
+    },
+    "suggested_actions": [
+      "Try refreshing the proxy list: POST /admin/refresh-proxies",
+      "Enable fallback scraping: set PROXY_FALLBACK_ENABLED=true (may cause rate limiting)",
+      "Check proxy system health: GET /health/proxies",
+      "Wait a few minutes and try again as new proxies may become available"
+    ]
+  }
+}
+```
 
-### Proxy Health Endpoint
+**Error Types:**
+
+The API returns structured error information to help you handle different failure scenarios:
+
+- `proxy_unavailable`: No working proxies available and fallback is disabled
+- `proxy_fetch_failed`: Failed to fetch proxies from proxy sources
+- `scraping_failed`: The scraping process itself failed
+- `validation_failed`: Job data validation failed
+
+Each error includes:
+- `message`: Human-readable error description
+- `details`: Additional context about the error
+- `suggested_actions`: Recommended steps to resolve the issue
+
+Note: Job `description` fields are returned in Markdown format
+
+### Health Endpoints
+
+**`GET /health/scraping`**
+
+Check if scraping is currently available (recommended to check before making job requests):
+
+```bash
+curl http://localhost:8000/health/scraping
+```
+
+**Response:**
+```json
+{
+  "scraping_available": true,
+  "use_proxies": true,
+  "fallback_enabled": false,
+  "working_proxies": 3,
+  "reason": "Scraping is available"
+}
+```
 
 **`GET /health/proxies`**
 
-Check the status of the proxy system:
+Check the detailed status of the proxy system:
 
 ```bash
 curl http://localhost:8000/health/proxies
@@ -235,7 +304,10 @@ A: Currently, the system uses free proxy lists from Proxifly. Custom proxy suppo
 A: This is normal for free proxy lists. By default, the application will return an empty result set when no proxies are available to protect you from rate limiting. You can enable fallback to direct scraping by setting `PROXY_FALLBACK_ENABLED=true`. You can manually refresh proxies using `POST /admin/refresh-proxies`.
 
 **Q: My scraping returns empty results when proxies fail** \
-A: This is the default behavior to protect users from rate limiting. When `PROXY_FALLBACK_ENABLED=false` (default), the application won't scrape without proxies. Set `PROXY_FALLBACK_ENABLED=true` to enable fallback to direct scraping at your own risk.
+A: This is the default behavior to protect users from rate limiting. When `PROXY_FALLBACK_ENABLED=false` (default), the application won't scrape without proxies. Check `GET /health/scraping` to see if scraping is available, or set `PROXY_FALLBACK_ENABLED=true` to enable fallback to direct scraping at your own risk.
+
+**Q: How can I check if scraping will work before making a request?** \
+A: Use the `GET /health/scraping` endpoint to check availability. This will tell you if scraping is currently possible and provide specific reasons if it's not available.
 
 ### Docker Questions
 

@@ -80,3 +80,45 @@ class Job(BaseModel):
         default=None,
         description="Job description in markdown format"
     )
+
+
+class ScrapingError(BaseModel):
+    """Structured error information for scraping failures"""
+    error_type: Literal[
+        "proxy_unavailable",
+        "proxy_fetch_failed",
+        "scraping_failed",
+        "validation_failed"
+    ] = Field(description="Type of error that occurred")
+
+    message: str = Field(description="Human-readable error message")
+
+    details: dict | None = Field(
+        default=None,
+        description="Additional error details and context"
+    )
+
+    suggested_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested actions to resolve the issue"
+    )
+
+
+class JobSearchResponse(BaseModel):
+    """Response model for job search requests"""
+    success: bool = Field(description="Whether the search was successful")
+
+    jobs: list[Job] = Field(
+        default_factory=list,
+        description="List of job results (empty if unsuccessful)"
+    )
+
+    error: ScrapingError | None = Field(
+        default=None,
+        description="Error information if search failed"
+    )
+
+    metadata: dict | None = Field(
+        default=None,
+        description="Additional metadata about the search"
+    )

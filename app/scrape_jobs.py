@@ -1,6 +1,6 @@
 import pandas as pd
 from jobspy import scrape_jobs
-from app.models import JobSearchParams, Job
+from app.models import JobSearchParams, Job, JobSearchResponse, ScrapingError
 from app.proxy_manager import proxy_manager
 from app.config import settings
 from typing import List
@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_jobs(params: JobSearchParams) -> List[Job]:
+def get_jobs(params: JobSearchParams) -> JobSearchResponse:
     try:
         logger.info(
             f"Scraping jobs for: {params.search_term} in {params.location}")
@@ -27,7 +27,25 @@ def get_jobs(params: JobSearchParams) -> List[Job]:
                         logger.error(
                             "PROXY_FALLBACK_ENABLED is false and no proxies are available. "
                             "Aborting scrape to prevent rate limiting.")
-                        return []
+                        return JobSearchResponse(
+                            success=False,
+                            jobs=[],
+                            error=ScrapingError(
+                                error_type="proxy_unavailable",
+                                message="No working proxies available and fallback is disabled",
+                                details={
+                                    "proxy_system_enabled": settings.USE_PROXIES,
+                                    "fallback_enabled": settings.PROXY_FALLBACK_ENABLED,
+                                    "working_proxies": 0
+                                },
+                                suggested_actions=[
+                                    "Try refreshing the proxy list: POST /admin/refresh-proxies",
+                                    "Enable fallback scraping: set PROXY_FALLBACK_ENABLED=true (may cause rate limiting)",
+                                    "Check proxy system health: GET /health/proxies",
+                                    "Wait a few minutes and try again as new proxies may become available"
+                                ]
+                            )
+                        )
                     else:
                         logger.info(
                             "Continuing without proxies (fallback enabled)")
@@ -37,7 +55,25 @@ def get_jobs(params: JobSearchParams) -> List[Job]:
                     logger.error(
                         "PROXY_FALLBACK_ENABLED is false and failed to get proxies. "
                         "Aborting scrape to prevent rate limiting.")
-                    return []
+                    return JobSearchResponse(
+                        success=False,
+                        jobs=[],
+                        error=ScrapingError(
+                            error_type="proxy_fetch_failed",
+                            message=f"Failed to fetch proxies and fallback is disabled: {str(e)}",
+                            details={
+                                "proxy_system_enabled": settings.USE_PROXIES,
+                                "fallback_enabled": settings.PROXY_FALLBACK_ENABLED,
+                                "error_details": str(e)
+                            },
+                            suggested_actions=[
+                                "Check network connectivity",
+                                "Try refreshing the proxy list: POST /admin/refresh-proxies",
+                                "Enable fallback scraping: set PROXY_FALLBACK_ENABLED=true (may cause rate limiting)",
+                                "Check proxy system health: GET /health/proxies"
+                            ]
+                        )
+                    )
                 else:
                     logger.info(
                         "Continuing without proxies (fallback enabled)")
@@ -74,7 +110,20 @@ def get_jobs(params: JobSearchParams) -> List[Job]:
         validated_jobs = [Job(**job_data) for job_data in jobs_list]
 
         logger.info(f"Successfully scraped {len(validated_jobs)} jobs")
-        return validated_jobs
+        return JobSearchResponse(
+            success=True,
+            jobs=validated_jobs,
+            metadata={
+                "total_results": len(validated_jobs),
+                "used_proxies": len(proxies) if proxies else 0,
+                "proxy_enabled": settings.USE_PROXIES,
+                "search_params": {
+                    "search_term": params.search_term,
+                    "location": params.location,
+                    "results_wanted": params.results_wanted
+                }
+            }
+        )
 
     except Exception as e:
         # If scraping fails with proxies, retry without them
@@ -99,12 +148,79 @@ def get_jobs(params: JobSearchParams) -> List[Job]:
 
                 logger.info(
                     f"Successfully scraped {len(validated_jobs)} jobs without proxies")
-                return validated_jobs
+                return JobSearchResponse(
+                    success=True,
+                    jobs=validated_jobs,
+                    metadata={
+                        "total_results": len(validated_jobs),
+                        "used_proxies": 0,
+                        "proxy_enabled": settings.USE_PROXIES,
+                        "fallback_used": True,
+                        "original_error": str(e),
+                        "search_params": {
+                            "search_term": params.search_term,
+                            "location": params.location,
+                            "results_wanted": params.results_wanted
+                        }
+                    }
+                )
             except Exception as fallback_error:
                 logger.error(
                     f"Fallback scraping also failed: {str(fallback_error)}")
-                return []
+                return JobSearchResponse(
+                    success=False,
+                    jobs=[],
+                    error=ScrapingError(
+                        error_type="scraping_failed",
+                        message="Both proxy and fallback scraping failed",
+                        details={
+                            "original_error": str(e),
+                            "fallback_error": str(fallback_error),
+                            "proxy_enabled": settings.USE_PROXIES,
+                            "fallback_enabled": settings.PROXY_FALLBACK_ENABLED
+                        },
+                        suggested_actions=[
+                            "Check network connectivity",
+                            "Verify search parameters are valid",
+                            "Try again in a few minutes",
+                            "Check service status: GET /health/proxies"
+                        ]
+                    )
+                )
         else:
+            # Determine error type based on context
+            if settings.PROXY_FALLBACK_ENABLED:
+                error_type = "scraping_failed"
+                message = f"Scraping failed: {str(e)}"
+                suggested_actions = [
+                    "Check network connectivity",
+                    "Verify search parameters are valid",
+                    "Try again in a few minutes",
+                    "Check if LinkedIn is accessible"
+                ]
+            else:
+                error_type = "scraping_failed"
+                message = f"Scraping failed and fallback is disabled: {str(e)}"
+                suggested_actions = [
+                    "Enable fallback scraping: set PROXY_FALLBACK_ENABLED=true",
+                    "Check proxy system: GET /health/proxies",
+                    "Try refreshing proxies: POST /admin/refresh-proxies",
+                    "Verify search parameters are valid"
+                ]
+
             logger.error(f"Error scraping jobs: {str(e)}")
-            # Return empty list instead of raising exception to prevent API errors
-            return []
+            return JobSearchResponse(
+                success=False,
+                jobs=[],
+                error=ScrapingError(
+                    error_type=error_type,
+                    message=message,
+                    details={
+                        "error": str(e),
+                        "proxy_enabled": settings.USE_PROXIES,
+                        "fallback_enabled": settings.PROXY_FALLBACK_ENABLED,
+                        "had_proxies": proxies is not None and len(proxies) > 0
+                    },
+                    suggested_actions=suggested_actions
+                )
+            )

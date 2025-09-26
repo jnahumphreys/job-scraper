@@ -57,11 +57,12 @@ def test_jobs_endpoint_success(mock_scrape_jobs):
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["title"] == "Python Developer"
-    assert data[0]["company"] == "Tech Corp"
-    assert data[0]["location"] == "New York, NY"
-    assert data[0]["is_remote"] is False
+    assert data["success"] is True
+    assert len(data["jobs"]) == 1
+    assert data["jobs"][0]["title"] == "Python Developer"
+    assert data["jobs"][0]["company"] == "Tech Corp"
+    assert data["jobs"][0]["location"] == "New York, NY"
+    assert data["jobs"][0]["is_remote"] is False
 
 
 @patch('app.scrape_jobs.scrape_jobs')
@@ -93,11 +94,12 @@ def test_jobs_endpoint_returns_remote_jobs(mock_scrape_jobs):
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["title"] == "Remote Python Developer"
-    assert data[0]["company"] == "Remote Corp"
-    assert data[0]["location"] == "Remote"
-    assert data[0]["is_remote"] is True
+    assert data["success"] is True
+    assert len(data["jobs"]) == 1
+    assert data["jobs"][0]["title"] == "Remote Python Developer"
+    assert data["jobs"][0]["company"] == "Remote Corp"
+    assert data["jobs"][0]["location"] == "Remote"
+    assert data["jobs"][0]["is_remote"] is True
 
 
 @patch('app.scrape_jobs.scrape_jobs')
@@ -111,9 +113,14 @@ def test_jobs_endpoint_handles_scraping_failure(mock_scrape_jobs):
         "location": "New York"
     })
 
-    # Your get_jobs function returns empty list on error
+    # The API should return a structured error response
     assert response.status_code == 200
-    assert response.json() == []
+    data = response.json()
+    assert data["success"] is False
+    assert data["jobs"] == []
+    assert data["error"] is not None
+    assert data["error"]["error_type"] == "scraping_failed"
+    assert "LinkedIn is down" in data["error"]["message"]
 
 
 @pytest.mark.parametrize("params,expected_status", [
@@ -288,7 +295,9 @@ def test_jobs_endpoint_with_all_parameters(mock_scrape_jobs):
     })
 
     assert response.status_code == 200
-    assert response.json() == []
+    data = response.json()
+    assert data["success"] is True
+    assert data["jobs"] == []
 
     # Verify the mock was called with correct parameters
     mock_scrape_jobs.assert_called_once()
@@ -458,7 +467,7 @@ def test_jobs_endpoint_proxy_disabled(mock_settings, mock_proxy_manager, mock_sc
 @patch('app.scrape_jobs.proxy_manager')
 @patch('app.scrape_jobs.settings')
 def test_jobs_endpoint_no_proxies_fallback_disabled(mock_settings, mock_proxy_manager):
-    """Test that jobs endpoint returns empty list when no proxies available and fallback disabled"""
+    """Test that jobs endpoint returns structured error when no proxies available and fallback disabled"""
     mock_settings.USE_PROXIES = True
     mock_settings.PROXY_FALLBACK_ENABLED = False
     mock_proxy_manager.get_proxy_list.return_value = None  # No proxies available
@@ -470,7 +479,12 @@ def test_jobs_endpoint_no_proxies_fallback_disabled(mock_settings, mock_proxy_ma
 
     assert response.status_code == 200
     data = response.json()
-    assert data == []  # Should return empty list to prevent rate limiting
+    assert data["success"] is False
+    assert data["jobs"] == []
+    assert data["error"] is not None
+    assert data["error"]["error_type"] == "proxy_unavailable"
+    assert "No working proxies available" in data["error"]["message"]
+    assert "POST /admin/refresh-proxies" in data["error"]["suggested_actions"][0]
 
 
 @patch('app.scrape_jobs.scrape_jobs')
@@ -493,6 +507,9 @@ def test_jobs_endpoint_no_proxies_fallback_enabled(mock_settings, mock_proxy_man
     })
 
     assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["jobs"] == []
 
     # Verify scrape_jobs was called without proxies
     call_kwargs = mock_scrape_jobs.call_args[1]
@@ -515,4 +532,9 @@ def test_jobs_endpoint_proxy_fetch_fails_fallback_disabled(mock_settings, mock_p
 
     assert response.status_code == 200
     data = response.json()
-    assert data == []  # Should return empty list to prevent rate limiting
+    assert data["success"] is False
+    assert data["jobs"] == []
+    assert data["error"] is not None
+    assert data["error"]["error_type"] == "proxy_fetch_failed"
+    assert "Failed to fetch proxies" in data["error"]["message"]
+    assert "Proxy service unavailable" in data["error"]["message"]

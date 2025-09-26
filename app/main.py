@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Annotated
 from app.scrape_jobs import get_jobs
-from app.models import Job, JobSearchParams
+from app.models import Job, JobSearchParams, JobSearchResponse
 from app.proxy_manager import proxy_manager
 
 app = FastAPI(
@@ -16,11 +16,11 @@ app = FastAPI(
 
 @app.get(
     "/jobs",
-    response_model=list[Job],
+    response_model=JobSearchResponse,
 )
 async def search_jobs(
     params: Annotated[JobSearchParams, Query()]
-) -> list[Job]:
+) -> JobSearchResponse:
     return get_jobs(params)
 
 
@@ -44,6 +44,39 @@ async def proxy_health():
                 "working_proxies": 0,
                 "error": str(e),
                 "status": "error"
+            }
+        )
+
+
+@app.get("/health/scraping")
+async def scraping_health():
+    """Check if scraping is currently available"""
+    from app.config import settings
+
+    try:
+        scraping_available = True
+        reason = "Scraping is available"
+
+        if settings.USE_PROXIES and not settings.PROXY_FALLBACK_ENABLED:
+            proxies = proxy_manager.get_proxy_list()
+            if not proxies:
+                scraping_available = False
+                reason = "Scraping unavailable: No working proxies and fallback disabled"
+
+        return {
+            "scraping_available": scraping_available,
+            "use_proxies": settings.USE_PROXIES,
+            "fallback_enabled": settings.PROXY_FALLBACK_ENABLED,
+            "working_proxies": len(proxy_manager.get_proxy_list() or []),
+            "reason": reason
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "scraping_available": False,
+                "error": str(e),
+                "reason": "Error checking scraping availability"
             }
         )
 
