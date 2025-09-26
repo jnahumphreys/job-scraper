@@ -44,7 +44,8 @@ def test_jobs_endpoint_success(mock_scrape_jobs):
             "job_url": "https://example.com/job/123",
             "job_url_direct": "https://example.com/apply/123",
             "job_type": "fulltime",
-            "description": "Great Python job"
+            "description": "Great Python job",
+            "is_remote": False
         }
     ]
     mock_scrape_jobs.return_value = mock_df
@@ -60,6 +61,43 @@ def test_jobs_endpoint_success(mock_scrape_jobs):
     assert data[0]["title"] == "Python Developer"
     assert data[0]["company"] == "Tech Corp"
     assert data[0]["location"] == "New York, NY"
+    assert data[0]["is_remote"] is False
+
+
+@patch('app.scrape_jobs.scrape_jobs')
+def test_jobs_endpoint_returns_remote_jobs(mock_scrape_jobs):
+    """Test that API returns is_remote field correctly for remote jobs"""
+    # Mock the pandas DataFrame with remote job data
+    mock_df = Mock()
+    mock_df.astype.return_value.where.return_value = mock_df
+    mock_df.to_dict.return_value = [
+        {
+            "id": "456",
+            "title": "Remote Python Developer",
+            "company": "Remote Corp",
+            "location": "Remote",
+            "job_url": "https://example.com/job/456",
+            "job_url_direct": "https://example.com/apply/456",
+            "job_type": "fulltime",
+            "description": "Remote Python job",
+            "is_remote": True
+        }
+    ]
+    mock_scrape_jobs.return_value = mock_df
+
+    response = client.get("/jobs", params={
+        "search_term": "python developer",
+        "location": "Remote",
+        "is_remote": True
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["title"] == "Remote Python Developer"
+    assert data[0]["company"] == "Remote Corp"
+    assert data[0]["location"] == "Remote"
+    assert data[0]["is_remote"] is True
 
 
 @patch('app.scrape_jobs.scrape_jobs')
@@ -119,6 +157,8 @@ def test_job_model_validation():
     assert job.title == "Python Developer"
     assert job.company == "Tech Corp"
     assert job.location == "New York, NY"
+    # Test that is_remote defaults to None when not provided
+    assert job.is_remote is None
 
 
 def test_job_model_accepts_none_values():
@@ -131,11 +171,42 @@ def test_job_model_accepts_none_values():
         "job_url": None,
         "job_url_direct": None,
         "job_type": None,
+        "is_remote": None,
         "description": None
     }
     job = Job(**job_data)
     assert job.title is None
     assert job.company is None
+    assert job.is_remote is None
+
+
+def test_job_model_with_is_remote():
+    """Test Job model with is_remote field explicitly set"""
+    job_data_remote = {
+        "id": "123",
+        "title": "Remote Python Developer",
+        "company": "Remote Corp",
+        "location": "Remote",
+        "job_url": "https://example.com/job/123",
+        "job_type": "fulltime",
+        "description": "Remote Python job",
+        "is_remote": True
+    }
+    job_remote = Job(**job_data_remote)
+    assert job_remote.is_remote is True
+
+    job_data_not_remote = {
+        "id": "124",
+        "title": "Onsite Python Developer",
+        "company": "Local Corp",
+        "location": "New York, NY",
+        "job_url": "https://example.com/job/124",
+        "job_type": "fulltime",
+        "description": "Onsite Python job",
+        "is_remote": False
+    }
+    job_not_remote = Job(**job_data_not_remote)
+    assert job_not_remote.is_remote is False
 
 
 def test_job_search_params_defaults():

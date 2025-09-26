@@ -72,6 +72,10 @@ class Job(BaseModel):
         default=None,
         description="Employment type",
     )
+    is_remote: bool | None = Field(
+        default=None,
+        description="Whether the job is remote/work-from-home"
+    )
     description: str | None = Field(
         default=None,
         description="Job description in markdown format"
