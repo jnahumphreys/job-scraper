@@ -317,10 +317,12 @@ A: Available tags include `latest` (most recent), and specific versions like `v1
 **Q: How do I update to the latest version?** \
 A: Pull the latest image: `docker pull ghcr.io/jnahumphreys/job-scraper:latest` and restart your container.
 
-**Q: Can I run this without Docker?**\ 
+**Q: Can I run this without Docker?** \
 A: Yes, but Docker is recommended for easier deployment. You would need to manually install Python dependencies and run the FastAPI application.
 
 ## Acknowledgments
+
+### JobSpy
 
 I would like to express my gratitude to the maintainers and contributors of [JobSpy](https://github.com/cullenwatson/JobSpy), the powerful job scraping library that makes this project possible. JobSpy provides robust scraping capabilities for major job platforms including Indeed, LinkedIn, ZipRecruiter, Glassdoor, and Google Jobs.
 
@@ -332,6 +334,17 @@ Special thanks to:
 
 Their work enables developers to build job search and analysis tools more efficiently.
 
-## License
+### Proxifly Free Proxy List
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+I would like to acknowledge and thank the team behind [Proxifly's Free Proxy List](https://github.com/proxifly/free-proxy-list), which provides the free proxy infrastructure that powers this project's automatic proxy rotation feature. 
+
+Special thanks to:
+- The Proxifly team for maintaining reliable, continuously updated proxy lists
+- Their commitment to providing free proxy services to the open-source community
+- The automated infrastructure that keeps proxy lists fresh and validated
+
+This proxy service enables my application to provide robust rate-limiting protection and reliable job scraping capabilities without requiring users to configure their own proxy infrastructure.
+
+## License Compliance
+
+This project is licensed under the MIT License. The proxy functionality uses free proxy lists from various sources including Proxifly (GPL v3). We consume this data via their public API endpoints without distributing their code, maintaining license compliance while providing proxy functionality.
