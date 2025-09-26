@@ -10,7 +10,7 @@ A FastAPI application for scraping job listings from LinkedIn using the JobSpy p
 - **Job Scraping**: Scrapes job listings from LinkedIn using the powerful JobSpy library
 - **Automatic Proxy Support**: Built-in free proxy rotation to avoid rate limiting and IP blocks
 - **Zero Configuration**: Works out of the box with sensible defaults
-- **Intelligent Fallback**: Automatically retries without proxies if proxy scraping fails
+- **Rate Limit Protection**: Defaults to not scraping without proxies to protect users from rate limiting
 - **REST API**: Clean, documented API endpoints for easy integration
 - **Docker Ready**: Pre-built Docker images available for instant deployment
 
@@ -72,7 +72,7 @@ You can customize the behavior with these optional environment variables:
 | `PROXY_UPDATE_INTERVAL` | `300` | Proxy refresh interval (seconds) |
 | `MAX_PROXY_WORKERS` | `20` | Concurrent proxy validation workers |
 | `MAX_WORKING_PROXIES` | `10` | Maximum working proxies to maintain |
-| `PROXY_FALLBACK_ENABLED` | `true` | Enable fallback to direct scraping |
+| `PROXY_FALLBACK_ENABLED` | `false` | Enable fallback to direct scraping (disabled by default to prevent rate limiting) |
 
 ### Configuration Examples
 
@@ -89,6 +89,11 @@ docker run -p 8000:8000 \
   ghcr.io/jnahumphreys/job-scraper:latest
 ```
 
+**Enable fallback to direct scraping (not recommended - may cause rate limiting):**
+```bash
+docker run -p 8000:8000 -e PROXY_FALLBACK_ENABLED=true ghcr.io/jnahumphreys/job-scraper:latest
+```
+
 **Using .env file with Docker Compose:**
 
 Create `.env` file:
@@ -96,6 +101,7 @@ Create `.env` file:
 USE_PROXIES=true
 PROXY_UPDATE_INTERVAL=300
 MAX_WORKING_PROXIES=10
+PROXY_FALLBACK_ENABLED=false  # Default: false (recommended for rate limit protection)
 ```
 
 Update `docker-compose.yml`:
@@ -209,7 +215,7 @@ A: Currently, the API supports LinkedIn job scraping. Support for Indeed and Goo
 A: You can request up to 100 jobs per API call using the `results_wanted` parameter.
 
 **Q: Are there rate limits?** \
-A: The built-in proxy system helps avoid rate limits. If you disable proxies, you may encounter LinkedIn's rate limiting.
+A: The built-in proxy system helps avoid rate limits. By default, the application will not scrape if no proxies are available (`PROXY_FALLBACK_ENABLED=false`) to protect users from rate limiting. You can enable fallback by setting `PROXY_FALLBACK_ENABLED=true`.
 
 ### Proxy Questions
 
@@ -226,7 +232,10 @@ A: Set the environment variable `USE_PROXIES=false` when running the container.
 A: Currently, the system uses free proxy lists from Proxifly. Custom proxy support would require code modifications.
 
 **Q: The proxy system isn't finding any working proxies** \
-A: This is normal for free proxy lists. The system automatically falls back to direct scraping. You can manually refresh proxies using `POST /admin/refresh-proxies`.
+A: This is normal for free proxy lists. By default, the application will return an empty result set when no proxies are available to protect you from rate limiting. You can enable fallback to direct scraping by setting `PROXY_FALLBACK_ENABLED=true`. You can manually refresh proxies using `POST /admin/refresh-proxies`.
+
+**Q: My scraping returns empty results when proxies fail** \
+A: This is the default behavior to protect users from rate limiting. When `PROXY_FALLBACK_ENABLED=false` (default), the application won't scrape without proxies. Set `PROXY_FALLBACK_ENABLED=true` to enable fallback to direct scraping at your own risk.
 
 ### Docker Questions
 

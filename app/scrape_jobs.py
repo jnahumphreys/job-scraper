@@ -22,11 +22,25 @@ def get_jobs(params: JobSearchParams) -> List[Job]:
                 if proxies:
                     logger.info(f"Using {len(proxies)} proxies for scraping")
                 else:
-                    logger.warning(
-                        "No working proxies available, scraping without proxies")
+                    logger.warning("No working proxies available")
+                    if not settings.PROXY_FALLBACK_ENABLED:
+                        logger.error(
+                            "PROXY_FALLBACK_ENABLED is false and no proxies are available. "
+                            "Aborting scrape to prevent rate limiting.")
+                        return []
+                    else:
+                        logger.info(
+                            "Continuing without proxies (fallback enabled)")
             except Exception as e:
-                logger.warning(
-                    f"Failed to get proxies: {e}, continuing without proxies")
+                logger.warning(f"Failed to get proxies: {e}")
+                if not settings.PROXY_FALLBACK_ENABLED:
+                    logger.error(
+                        "PROXY_FALLBACK_ENABLED is false and failed to get proxies. "
+                        "Aborting scrape to prevent rate limiting.")
+                    return []
+                else:
+                    logger.info(
+                        "Continuing without proxies (fallback enabled)")
 
         # Build kwargs dict, only excluding job_type if None
         scrape_kwargs = {

@@ -453,3 +453,66 @@ def test_jobs_endpoint_proxy_disabled(mock_settings, mock_proxy_manager, mock_sc
     # Verify proxies were not passed to scrape_jobs
     call_kwargs = mock_scrape_jobs.call_args[1]
     assert call_kwargs["proxies"] is None
+
+
+@patch('app.scrape_jobs.proxy_manager')
+@patch('app.scrape_jobs.settings')
+def test_jobs_endpoint_no_proxies_fallback_disabled(mock_settings, mock_proxy_manager):
+    """Test that jobs endpoint returns empty list when no proxies available and fallback disabled"""
+    mock_settings.USE_PROXIES = True
+    mock_settings.PROXY_FALLBACK_ENABLED = False
+    mock_proxy_manager.get_proxy_list.return_value = None  # No proxies available
+
+    response = client.get("/jobs", params={
+        "search_term": "python developer",
+        "location": "New York"
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data == []  # Should return empty list to prevent rate limiting
+
+
+@patch('app.scrape_jobs.scrape_jobs')
+@patch('app.scrape_jobs.proxy_manager')
+@patch('app.scrape_jobs.settings')
+def test_jobs_endpoint_no_proxies_fallback_enabled(mock_settings, mock_proxy_manager, mock_scrape_jobs):
+    """Test that jobs endpoint continues without proxies when fallback enabled"""
+    mock_settings.USE_PROXIES = True
+    mock_settings.PROXY_FALLBACK_ENABLED = True
+    mock_proxy_manager.get_proxy_list.return_value = None  # No proxies available
+
+    mock_df = Mock()
+    mock_df.astype.return_value.where.return_value = mock_df
+    mock_df.to_dict.return_value = []
+    mock_scrape_jobs.return_value = mock_df
+
+    response = client.get("/jobs", params={
+        "search_term": "python developer",
+        "location": "New York"
+    })
+
+    assert response.status_code == 200
+
+    # Verify scrape_jobs was called without proxies
+    call_kwargs = mock_scrape_jobs.call_args[1]
+    assert call_kwargs["proxies"] is None
+
+
+@patch('app.scrape_jobs.proxy_manager')
+@patch('app.scrape_jobs.settings')
+def test_jobs_endpoint_proxy_fetch_fails_fallback_disabled(mock_settings, mock_proxy_manager):
+    """Test that jobs endpoint returns empty list when proxy fetch fails and fallback disabled"""
+    mock_settings.USE_PROXIES = True
+    mock_settings.PROXY_FALLBACK_ENABLED = False
+    mock_proxy_manager.get_proxy_list.side_effect = Exception(
+        "Proxy service unavailable")
+
+    response = client.get("/jobs", params={
+        "search_term": "python developer",
+        "location": "New York"
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data == []  # Should return empty list to prevent rate limiting

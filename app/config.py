@@ -12,9 +12,9 @@ class Settings:
     MAX_PROXY_WORKERS: int = int(os.getenv('MAX_PROXY_WORKERS', '20'))
     MAX_WORKING_PROXIES: int = int(os.getenv('MAX_WORKING_PROXIES', '10'))
 
-    # Fallback behavior
+    # Fallback behavior (defaults to false to prevent rate limiting)
     PROXY_FALLBACK_ENABLED: bool = os.getenv(
-        'PROXY_FALLBACK_ENABLED', 'true').lower() == 'true'
+        'PROXY_FALLBACK_ENABLED', 'false').lower() == 'true'
 
 
 settings = Settings()
