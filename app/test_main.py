@@ -250,3 +250,135 @@ def test_jobs_endpoint_without_job_type(mock_scrape_jobs):
     # Verify job_type was not included in the call
     call_kwargs = mock_scrape_jobs.call_args[1]
     assert "job_type" not in call_kwargs or call_kwargs.get("job_type") is None
+
+
+# Proxy-related tests
+@patch('app.main.proxy_manager')
+def test_proxy_health_endpoint_success(mock_proxy_manager):
+    """Test proxy health endpoint with working proxies"""
+    mock_proxy_manager.get_proxy_list.return_value = [
+        "http://proxy1:8080", "http://proxy2:8080"]
+    mock_proxy_manager.last_update = 1234567890
+
+    response = client.get("/health/proxies")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["proxy_system_enabled"] is True
+    assert data["working_proxies"] == 2
+    assert data["last_update"] == 1234567890
+    assert data["status"] == "healthy"
+
+
+@patch('app.main.proxy_manager')
+def test_proxy_health_endpoint_no_proxies(mock_proxy_manager):
+    """Test proxy health endpoint with no working proxies"""
+    mock_proxy_manager.get_proxy_list.return_value = None
+    mock_proxy_manager.last_update = 1234567890
+
+    response = client.get("/health/proxies")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["proxy_system_enabled"] is True
+    assert data["working_proxies"] == 0
+    assert data["last_update"] == 1234567890
+    assert data["status"] == "no_proxies_available"
+
+
+@patch('app.main.proxy_manager')
+def test_proxy_health_endpoint_error(mock_proxy_manager):
+    """Test proxy health endpoint when proxy manager fails"""
+    mock_proxy_manager.get_proxy_list.side_effect = Exception(
+        "Proxy service error")
+
+    response = client.get("/health/proxies")
+
+    assert response.status_code == 500
+    data = response.json()
+    assert data["proxy_system_enabled"] is True
+    assert data["working_proxies"] == 0
+    assert "error" in data
+    assert data["status"] == "error"
+
+
+@patch('app.main.proxy_manager')
+def test_refresh_proxies_endpoint_success(mock_proxy_manager):
+    """Test proxy refresh endpoint success"""
+    mock_proxy_manager.get_proxy_list.return_value = [
+        "http://proxy1:8080", "http://proxy2:8080"]
+
+    response = client.post("/admin/refresh-proxies")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message"] == "Proxy list refreshed"
+    assert data["working_proxies"] == 2
+    mock_proxy_manager.get_proxy_list.assert_called_once_with(
+        force_refresh=True)
+
+
+@patch('app.main.proxy_manager')
+def test_refresh_proxies_endpoint_error(mock_proxy_manager):
+    """Test proxy refresh endpoint error handling"""
+    mock_proxy_manager.get_proxy_list.side_effect = Exception("Refresh failed")
+
+    response = client.post("/admin/refresh-proxies")
+
+    assert response.status_code == 500
+    data = response.json()
+    assert "Failed to refresh proxies" in data["detail"]
+
+
+@patch('app.scrape_jobs.scrape_jobs')
+@patch('app.scrape_jobs.proxy_manager')
+@patch('app.scrape_jobs.settings')
+def test_jobs_endpoint_with_proxy_support(mock_settings, mock_proxy_manager, mock_scrape_jobs):
+    """Test that jobs endpoint uses proxies when available"""
+    mock_settings.USE_PROXIES = True
+    mock_proxy_manager.get_proxy_list.return_value = [
+        "http://proxy1:8080", "http://proxy2:8080"]
+
+    mock_df = Mock()
+    mock_df.astype.return_value.where.return_value = mock_df
+    mock_df.to_dict.return_value = []
+    mock_scrape_jobs.return_value = mock_df
+
+    response = client.get("/jobs", params={
+        "search_term": "python developer",
+        "location": "New York"
+    })
+
+    assert response.status_code == 200
+
+    # Verify proxies were passed to scrape_jobs
+    call_kwargs = mock_scrape_jobs.call_args[1]
+    assert call_kwargs["proxies"] == [
+        "http://proxy1:8080", "http://proxy2:8080"]
+
+
+@patch('app.scrape_jobs.scrape_jobs')
+@patch('app.scrape_jobs.proxy_manager')
+@patch('app.scrape_jobs.settings')
+def test_jobs_endpoint_proxy_disabled(mock_settings, mock_proxy_manager, mock_scrape_jobs):
+    """Test that jobs endpoint works without proxies when disabled"""
+    mock_settings.USE_PROXIES = False
+
+    mock_df = Mock()
+    mock_df.astype.return_value.where.return_value = mock_df
+    mock_df.to_dict.return_value = []
+    mock_scrape_jobs.return_value = mock_df
+
+    response = client.get("/jobs", params={
+        "search_term": "python developer",
+        "location": "New York"
+    })
+
+    assert response.status_code == 200
+
+    # Verify proxies were not requested
+    mock_proxy_manager.get_proxy_list.assert_not_called()
+
+    # Verify proxies were not passed to scrape_jobs
+    call_kwargs = mock_scrape_jobs.call_args[1]
+    assert call_kwargs["proxies"] is None
